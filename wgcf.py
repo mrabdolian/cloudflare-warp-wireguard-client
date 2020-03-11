@@ -204,6 +204,10 @@ def print_account_status(account_data: AccountData):
 	print("")
 
 
+def print_account_id(account_data: AccountData):
+	print(f"\nAccount ID: {account_data.account_id}\n")
+
+
 def create_wireguard_conf(account_data: AccountData):
 	print(f"Getting configuration...")
 	conf_data = get_server_conf(account_data)
@@ -245,13 +249,15 @@ if __name__ == "__main__":
 	if len(sys.argv) > 1:
 		choice = sys.argv[1]
 	else:
-		print("\nPlease choose:\n1. Get Account Status\n2. Create WireGuard Configuration")
+		print("\nPlease choose:\n1. Get Account ID\n2. Get Account Status\n3. Create WireGuard Configuration")
 		choice = input("\nYour Choice: ")
 
 	intChoice = int(choice)
 
 	if intChoice == 1:
-		print_account_status(account_data)
+		print_account_id(account_data)
 	elif intChoice == 2:
+		print_account_status(account_data)
+	elif intChoice == 3:
 		create_wireguard_conf(account_data)
 
