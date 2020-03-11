@@ -40,6 +40,16 @@ class AccountData():
 
 
 @dataclasses.dataclass
+class AccountStatus():
+	warp_enabled: bool
+	account_type: str
+	premium_data: int
+	quota: int
+	warp_plus: bool
+	referral_count: int
+
+
+@dataclasses.dataclass
 class ConfigurationData():
 	local_address_ipv4: str
 	local_address_ipv6: str
@@ -114,7 +124,7 @@ def enable_warp(account_data: AccountData):
 	assert response["warp_enabled"] == True
 
 
-def get_server_conf(account_data: AccountData) -> ConfigurationData:
+def get_account_details(account_data: AccountData):
 	headers = default_headers.copy()
 	headers["Authorization"] = f"Bearer {account_data.access_token}"
 
@@ -122,6 +132,11 @@ def get_server_conf(account_data: AccountData) -> ConfigurationData:
 
 	response.raise_for_status()
 	response = json.loads(response.content)
+	return response
+
+
+def get_server_conf(account_data: AccountData) -> ConfigurationData:
+	response = get_account_details(account_data)
 
 	addresses = response["config"]["interface"]["addresses"]
 	peer = response["config"]["peers"][0]
@@ -159,24 +174,37 @@ def create_conf(account_data: AccountData, conf_data: ConfigurationData):
 							   conf_data.endpoint_address_host))
 
 
-if __name__ == "__main__":
-	data_path.mkdir(exist_ok=True)
-	account_data: AccountData
+def get_account_status(account_data: AccountData) -> AccountStatus:
+	response = get_account_details(account_data)
+
+	warp_enabled = response["warp_enabled"]
+
+	account = response["account"] if "account" in response else ""
+	account_type = account["account_type"] if account != "" else ""
+	premium_data = account["premium_data"] if account != "" else ""
+	quota = account["quota"] if account != "" else ""
+	warp_plus = account["warp_plus"] if account != "" else ""
+	referral_count = account["referral_count"] if account != "" else ""
+
+	return AccountStatus(warp_enabled, account_type, premium_data, quota, warp_plus, referral_count)
 
 
-	if not identity_path.exists():
-		print("This project is in no way affiliated with Cloudflare!")
-		print(f"Cloudflare's Terms of Service: {terms_of_service_url}")
-		if not input("Do you agree? (y/N): ").lower() == "y":
-			sys.exit(2)
+def print_account_status(account_data: AccountData):
+	account_status = get_account_status(account_data)
 
-		print(f"Creating new identity...")
-		account_data = do_register()
-		save_identitiy(account_data)
-	else:
-		print(f"Loading existing identity...")
-		account_data = load_identity()
+	print("")
+	print("Account Info: ==================")
+	print(f"Warp: {account_status.warp_enabled}")
+	print(f"Warp+: {account_status.warp_plus}")
+	print(f"Account Type: {account_status.account_type}")
+	print(f"Referral Count: {account_status.referral_count}")
+	print(f"Data Earned: {round(account_status.premium_data / 1000000000, 2)} GB")
+	print(f"Data Remaining: {round(account_status.quota / 1000000000, 2)} GB")
+	print("================================")
+	print("")
 
+
+def create_wireguard_conf(account_data: AccountData):
 	print(f"Getting configuration...")
 	conf_data = get_server_conf(account_data)
 
@@ -194,3 +222,37 @@ if __name__ == "__main__":
 	print("All done! Find your files here:")
 	print(identity_path.absolute())
 	print(config_path.absolute())
+
+
+if __name__ == "__main__":
+	data_path.mkdir(exist_ok=True)
+	account_data: AccountData
+
+	if not identity_path.exists():
+		print("This project is in no way affiliated with Cloudflare!")
+		print(f"Cloudflare's Terms of Service: {terms_of_service_url}")
+		if not input("Do you agree? (y/N): ").lower() == "y":
+			sys.exit(2)
+
+		print(f"Creating new identity...")
+		account_data = do_register()
+		save_identitiy(account_data)
+	else:
+		print(f"Loading existing identity...")
+		account_data = load_identity()
+
+	choice: str
+	print("\nPlease choose:\n1. Get Account Status\n2. Create WireGuard Configuration")
+	if len(sys.argv) > 1:
+		choice = sys.argv[1]
+		print(f"\nYour Choice: {choice}")
+	else:
+		choice = input("\nYour Choice: ")
+
+	intChoice = int(choice)
+
+	if intChoice == 1:
+		print_account_status(account_data)
+	elif intChoice == 2:
+		create_wireguard_conf(account_data)
+
