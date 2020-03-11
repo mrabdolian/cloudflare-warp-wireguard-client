@@ -242,11 +242,10 @@ if __name__ == "__main__":
 		account_data = load_identity()
 
 	choice: str
-	print("\nPlease choose:\n1. Get Account Status\n2. Create WireGuard Configuration")
 	if len(sys.argv) > 1:
 		choice = sys.argv[1]
-		print(f"\nYour Choice: {choice}")
 	else:
+		print("\nPlease choose:\n1. Get Account Status\n2. Create WireGuard Configuration")
 		choice = input("\nYour Choice: ")
 
 	intChoice = int(choice)
